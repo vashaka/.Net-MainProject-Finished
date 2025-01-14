@@ -1,0 +1,49 @@
+﻿@model DepositWithdrawRequest
+
+<div class="container">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>My request details</h3>
+        </div>
+        <div class="card-body">
+            <p style="display: none;" class="depWithId">@Model.Id</p>
+            <p><strong>My iD:</strong> <span class="user-id">@Model.UserId</span></p>
+            <p><strong>Transaction Type:</strong> <span class="">@Model.TransactionType</span></p>
+            <p><strong>Amount:</strong> <span class="amount">@Model.Amount</span></p>
+            <p><strong>Status:</strong> <span class="">@Model.Status</span></p>
+            <p><strong>Created At:</strong> @Model.CreatedAt.ToString("g")</p>
+        </div>
+    </div>
+    <div>
+    <a asp-controller="DepositWithdraw" asp-action="Deposit" class="btn btn-danger mt-3">Back to Home</a>
+    <a class="btn btn-primary mt-3">Confirm</a>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const confirmButton = $(".btn-primary");
+            const depWithId = $(".depWithId").text().trim();
+
+            confirmButton.on("click", function () {
+                console.log("Request ID:", depWithId);
+
+                $.ajax({
+                    url: '@Url.Action("ConfirmRequest", "CallBack")',
+                    type: 'POST',
+                    data: { DepositWithdrawRequestId: depWithId },
+                    success: function (response) {
+                        // alert(response.message); Display success message
+                        window.location.href = "https://localhost:7200/Home/Transactions"
+                    },
+                    error: function (xhr, status, error) {
+                        alert("An error occurred: " + xhr.responseText);
+                        console.error(error);
+                    }
+                });
+            });
+        });
+    </script>
+}
+

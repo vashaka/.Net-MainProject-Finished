@@ -1,0 +1,57 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using MvcProject.Models
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item">
+        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
+    </li>
+        <li class="nav-item">
+            <span id="walletBalance" class="nav-link text-dark"></span>
+        </li>
+        <li class="nav-item">
+            <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
+            </form>
+        </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
+    </li>
+}
+</ul>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+@if(!User.IsInRole("Admin") && SignInManager.IsSignedIn(User))
+{
+    <script>
+        function fetchWalletBalance() {
+            $.ajax({
+                url: '/api/user/get-ballance',
+                method: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    console.log(data.CurrentBalance)
+                    const balance = data?.CurrentBalance;
+                    $('#walletBalance').text(`Balance: $${balance}`);
+                    console.log(balance);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to fetch balance:', xhr.status, error);
+                }
+            });
+        }
+        $(document).ready(function () {
+            fetchWalletBalance(); 
+            setInterval(fetchWalletBalance, 30000);
+        });
+    </script>
+}

@@ -1,0 +1,108 @@
+﻿@model IEnumerable<MvcProject.Models.DepositWithdrawRequest>
+
+<h1 class="my-4">Deposit-Withdraw Requests</h1>
+
+<div class="table-responsive">
+  <table class="table table-striped table-hover table-bordered">
+    <thead class="table-dark">
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Amount</th>
+        <th scope="col">Status</th>
+        <th scope="col">Transaction Type</th>
+        <th scope="col">Date</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (Model.Any())
+      {
+        @foreach (var request in Model.Where(r => r.Status == "Pending"))
+        {
+          <tr>
+            <td>@request.Id</td>
+            <td>@request.Amount.ToString("C")</td>
+            <td>
+              <span class="badge bg-warning text-dark">
+                @request.Status
+              </span>
+            </td>
+            <td>@request.TransactionType</td>
+            <td>@request.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+            <td>
+            <button class="btn btn-success btn-sm approve-reject-btn"
+                    data-id="@request.Id"
+                    data-amount="@request.Amount"
+                    data-status="@request.Status"
+                    data-transaction-type="@request.TransactionType"
+                    data-created-at="@request.CreatedAt"
+                    data-user-id="@request.UserId"
+                                    data-action="Success">
+                Approve
+            </button>
+            <button class="btn btn-danger btn-sm approve-reject-btn"
+                    data-id="@request.Id"
+                    data-amount="@request.Amount"
+                    data-status="@request.Status"
+                    data-transaction-type="@request.TransactionType"
+                    data-created-at="@request.CreatedAt"
+                    data-user-id="@request.UserId"
+                                    data-action="Rejected">
+                Reject
+            </button>
+            </td>
+          </tr>
+        }
+      }
+      else
+      {
+        <tr>
+          <td colspan="6" class="text-center text-muted">No pending requests found</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $(".approve-reject-btn").click(function () {
+            var id = $(this).data("id");
+            var amount = $(this).data("amount");
+            //var status = $(this).data("status");  // this is Pending: so existing status
+            var transactionType = $(this).data("transaction-type");
+            var createdAt = $(this).data("created-at");
+            var userId = $(this).data("user-id");
+            var status = $(this).data("action");
+
+            console.log("ID:", id);
+            console.log("Amount:", amount);
+            // console.log("Status:", status);
+            console.log("Transaction Type:", transactionType);
+            console.log("Created At:", createdAt);
+            console.log("User ID:", userId);
+            console.log("Action:", status);
+
+
+            $.ajax({
+                url: '@Url.Action("AdminApproveReject", "Admin")',
+                type: 'POST',
+                data: {
+                    Id: id,
+                    Amount: amount,
+                    Status: status,
+                    TransactionType: transactionType,
+                    UserId: userId
+                },
+                success: function (response) {
+                    alert('Request ' + status + 'd successfully!');
+                    // location.reload();
+                },
+                error: function (xhr, status, error) {
+                    alert('Error: ' + error);
+                    console.log(error, xhr);
+                }
+            });
+        });
+    });
+</script>
