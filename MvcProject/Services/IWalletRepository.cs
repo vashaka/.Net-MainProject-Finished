@@ -2,6 +2,6 @@
 {
     public interface IWalletRepository
     {
-        public Task CreateWalletAndAssignToUserAsync(string userId);
+        public Task CreateWalletAndAssignToUserAsync(string userId, string currency);
     }
 }

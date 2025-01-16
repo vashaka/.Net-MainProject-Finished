@@ -24,16 +24,16 @@ namespace MvcProject.Controllers
             var userId =User.FindFirstValue(ClaimTypes.NameIdentifier);
             using(var connection = new SqlConnection(_connectionString))
             {
-                string sql = "SELECT CurrentBalance FROM Wallets WHERE UserId = @UserId";
-                var ballance = await connection.QuerySingleOrDefaultAsync(sql, new {UserId = userId});
+                string sql = "SELECT CurrentBalance, Currency FROM Wallets WHERE UserId = @UserId";
+                var resp = await connection.QueryAsync(sql, new {UserId = userId});
                 Console.WriteLine("balance updates");
 
-                if (ballance== null)
+                if (resp == null)
                 {
                     return NotFound("Wallet not found for the user.");
                 }
 
-                return Ok(ballance);
+                return Ok(resp);
             }
         }
     }

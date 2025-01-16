@@ -12,7 +12,7 @@ namespace MvcProject.Services
             _connectionString = configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
         }
 
-        public async Task CreateWalletAndAssignToUserAsync(string userId)
+        public async Task CreateWalletAndAssignToUserAsync(string userId, string currency)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -23,11 +23,17 @@ namespace MvcProject.Services
                 {
                     try
                     {
-                        string sql1 = @"INSERT INTO Wallets (UserId, CurrentBalance, Currency) VALUES (@UserId, @CurrentBalance, @Currency); 
+                        string sql1 =@"INSERT INTO Wallets (UserId, CurrentBalance, Currency) VALUES (@UserId, @CurrentBalance, @Currency); 
                                            SELECT CAST(SCOPE_IDENTITY() AS INT);";
+                        int currencyValue=(currency == "GEL") ? 1 : (currency == "USD") ? 2 : (currency == "EUR") ? 3 : 0;
+
+                        if (currencyValue == 0)
+                        {
+                            throw new ArgumentException("Invalid currency.");
+                        }
                         var walletId = await connection.QuerySingleAsync<int>(
                             sql1,
-                            new { UserId = userId, CurrentBalance = 0.00m, Currency = 2 },
+                            new { UserId = userId, CurrentBalance = 0.00m, Currency = currencyValue },
                             transaction);
 
                         string sql2= @"UPDATE AspNetUsers SET WalletId = @WalletId WHERE Id = @UserId";

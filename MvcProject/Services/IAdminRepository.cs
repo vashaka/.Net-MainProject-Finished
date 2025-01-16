@@ -4,6 +4,6 @@ namespace MvcProject.Services
 {
     public interface IAdminRepository
     {
-        Task<IEnumerable<DepositWithdrawRequest>> GetAllDepositWithdrawRequestsAsync();
+        Task<IEnumerable<DepositWithdrawRequestDto>> GetAllDepositWithdrawRequestsAsync();
     }
 }

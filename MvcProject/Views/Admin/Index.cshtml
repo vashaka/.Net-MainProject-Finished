@@ -1,4 +1,4 @@
-﻿@model IEnumerable<MvcProject.Models.DepositWithdrawRequest>
+﻿@model IEnumerable<MvcProject.Models.DepositWithdrawRequestDto>
 
 <h1 class="my-4">Deposit-Withdraw Requests</h1>
 
@@ -7,6 +7,7 @@
     <thead class="table-dark">
       <tr>
         <th scope="col">Id</th>
+        <th scope="col">UserName</th>
         <th scope="col">Amount</th>
         <th scope="col">Status</th>
         <th scope="col">Transaction Type</th>
@@ -21,6 +22,7 @@
         {
           <tr>
             <td>@request.Id</td>
+            <td>@request.UserName</td>
             <td>@request.Amount.ToString("C")</td>
             <td>
               <span class="badge bg-warning text-dark">
@@ -67,6 +69,7 @@
 <script>
     $(document).ready(function () {
         $(".approve-reject-btn").click(function () {
+
             var id = $(this).data("id");
             var amount = $(this).data("amount");
             //var status = $(this).data("status");  // this is Pending: so existing status
@@ -78,11 +81,10 @@
             console.log("ID:", id);
             console.log("Amount:", amount);
             // console.log("Status:", status);
-            console.log("Transaction Type:", transactionType);
-            console.log("Created At:", createdAt);
-            console.log("User ID:", userId);
-            console.log("Action:", status);
-
+            console.log("Transaction type:", transactionType);
+            console.log("Creatdat:", createdAt);
+            console.log("Use iD:", userId);
+            console.log("Action", status);
 
             $.ajax({
                 url: '@Url.Action("AdminApproveReject", "Admin")',
@@ -95,11 +97,11 @@
                     UserId: userId
                 },
                 success: function (response) {
-                    alert('Request ' + status + 'd successfully!');
-                    // location.reload();
+                    // alert('Request ' + status + 'successfully!');
+                    location.reload();
                 },
                 error: function (xhr, status, error) {
-                    alert('Error: ' + error);
+                    alert('Maybe User Doesnt has enough Balance' + error);
                     console.log(error, xhr);
                 }
             });

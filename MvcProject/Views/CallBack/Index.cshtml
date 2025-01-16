@@ -3,8 +3,9 @@
 <div class="container">
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h3>My request details</h3>
+            <h3>@(Model.Status == "Rejected" ? "Transaction Rejected" : "Transaction Successful")</h3>
         </div>
+
         <div class="card-body">
             <p style="display: none;" class="depWithId">@Model.Id</p>
             <p><strong>My iD:</strong> <span class="user-id">@Model.UserId</span></p>
@@ -15,8 +16,9 @@
         </div>
     </div>
     <div>
-    <a asp-controller="DepositWithdraw" asp-action="Deposit" class="btn btn-danger mt-3">Back to Home</a>
-    <a class="btn btn-primary mt-3">Confirm</a>
+@*     <a asp-controller="DepositWithdraw" asp-action="Deposit" class="btn btn-danger mt-3">Back to Home</a>
+ *@    
+ <a class="btn btn-primary mt-3">Go To My Transactions</a>
     </div>
 </div>
 @section Scripts {
@@ -28,20 +30,7 @@
 
             confirmButton.on("click", function () {
                 console.log("Request ID:", depWithId);
-
-                $.ajax({
-                    url: '@Url.Action("ConfirmRequest", "CallBack")',
-                    type: 'POST',
-                    data: { DepositWithdrawRequestId: depWithId },
-                    success: function (response) {
-                        // alert(response.message); Display success message
                         window.location.href = "https://localhost:7200/Home/Transactions"
-                    },
-                    error: function (xhr, status, error) {
-                        alert("An error occurred: " + xhr.responseText);
-                        console.error(error);
-                    }
-                });
             });
         });
     </script>

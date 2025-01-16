@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace MvcProject.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class CallBackController : Controller
     {
         private readonly IDepositWithdrawRepository _depWithRepo;
@@ -18,16 +18,27 @@ namespace MvcProject.Controllers
         }
 
         [HttpGet]
+        public IActionResult Pending()
+        {
+            return View();
+        }
+
+
+        [HttpGet]
         [Route("CallBack/{hash}/{depositWithdrawRequestId}")]
         public async Task<IActionResult> Index(string hash,int depositWithdrawRequestId)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized("User ID not found. Ensure the user is logged in.");
             }
+            Console.WriteLine("userID: " + userId);
+            Console.WriteLine("reqId: " + depositWithdrawRequestId);
             DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAndUserIdAsync(depositWithdrawRequestId, userId);
-            if (depositWithdrawRequest == null || depositWithdrawRequest.Status != "Pending")
+            Console.WriteLine(depositWithdrawRequest);
+            if (depositWithdrawRequest == null)
             {
                 return NotFound("Request not found or does not belong to the user.");
             }
@@ -35,28 +46,68 @@ namespace MvcProject.Controllers
             return View("Index", depositWithdrawRequest);
         }
 
+// CALLING FROM BANKINGAPI
         [HttpPost]
-        [Route("CallBack/Confirm")]
-        public async Task<IActionResult> ConfirmRequest([FromForm] int DepositWithdrawRequestId)
+        [Route("CallBack/Deposit/Confirm")]
+        public async Task<IActionResult> ConfirmRequest([FromBody] IncomigRequesst req)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string userId = req.userid;
+            //var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
+                Console.WriteLine("User ID not found. Ensure the user is logged in..");
                 return Unauthorized("User ID not found. Ensure the user is logged in.");
             }
 
-            DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAndUserIdAsync(DepositWithdrawRequestId, userId);
+            DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAndUserIdAsync(req.reqid, userId);
             if (depositWithdrawRequest == null)
             {
+                Console.WriteLine("Request not found or does not belong to the user.");
                 return NotFound("Request not found or does not belong to the user.");
             }
-
-            depositWithdrawRequest.Status = "Success";
-            await _transactionRepo.CreateTransactionAsync(userId, depositWithdrawRequest.Status, depositWithdrawRequest.Amount, DepositWithdrawRequestId);
+            Console.WriteLine("Status from CallBack");
+            Console.WriteLine(req.status);
+            await _transactionRepo.CreateDepositTransactionAsync(userId, req.status, depositWithdrawRequest.Amount, req.reqid);
 
 
             return Ok(new { message = "Request confirmed successfully", requestId = depositWithdrawRequest.Id });
         }
+
+        [HttpPost]
+        [Route("CallBack/Withdraw/Confirm")]
+        public async Task<IActionResult> ConfirmWithdrawRequest([FromBody] IncomigRequesst req)
+        {
+            string userId = req.userid;
+            if (string.IsNullOrEmpty(userId))
+            {
+                Console.WriteLine("User ID not found. Ensure the user is logged in..");
+                return Unauthorized("User ID not found. Ensure the user is logged in.");
+            }
+
+            DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAndUserIdAsync(req.reqid, userId);
+            if (depositWithdrawRequest == null)
+            {
+                Console.WriteLine("Request not found or does not belong to the user.");
+                return NotFound("Request not found or does not belong to the user.");
+            }
+            string resp = await _transactionRepo.CreateWithdrawTransactionAsync(userId, req.status, depositWithdrawRequest.Amount, req.reqid);
+            if(resp == "ERROR")
+            {
+                await _depWithRepo.UpdateDepositWithdrawStatusAsync(req.reqid, "Rejected");
+            }
+
+            return Ok(new { message = "Request confirmed successfully", requestId = depositWithdrawRequest.Id });
+        }
+
+
+
+        public class IncomigRequesst
+        {
+            public int reqid {  get; set; }
+            public string userid { get; set; }
+            public string status { get; set; }
+        }
+
 
 
     }

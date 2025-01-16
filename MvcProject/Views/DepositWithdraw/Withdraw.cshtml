@@ -29,12 +29,20 @@
                 $.ajax({
                     url: '@Url.Action("SubmitWithdraw", "DepositWithdraw")', type:'POST', data: {amount: amount},
                     success: function (response) {
-                        $('#result').text('Withdraw request submitted successfully!');
+                        if(response.message)
+                        {
+                            $('#result').text(response.message);
+                        } else 
+                        {
+                            // $('#result').text('Withdraw request submitted successfully!');
+                            window.location.href = "/CallBack/Pending";
+                        }
                     }, error: function (xhr, status, error) {
                         console.log(error,xhr, status);
                         $('#result').text('An error occurred: '+ xhr.responseText);
                     }
                 });
+
             });
         });
     </script>

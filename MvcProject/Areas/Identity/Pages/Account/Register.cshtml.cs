@@ -101,6 +101,10 @@ namespace MvcProject.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
+            [Required(ErrorMessage = "you should select currency!!")]
+            [Display(Name = "Currency")]
+            public string Currency { get; set; }
         }
 
 
@@ -128,7 +132,7 @@ namespace MvcProject.Areas.Identity.Pages.Account
 
                     var userId = await _userManager.GetUserIdAsync(user);
 
-                    await _walletRepo.CreateWalletAndAssignToUserAsync(userId);
+                    await _walletRepo.CreateWalletAndAssignToUserAsync(userId, Input.Currency);
 
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));

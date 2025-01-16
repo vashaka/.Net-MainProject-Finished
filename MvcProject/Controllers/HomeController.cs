@@ -35,7 +35,7 @@ namespace MvcProject.Controllers
             {
                 return Unauthorized("User is not logged in.");
             }
-            IEnumerable<Transaction> myTransactions = await _transactionRepo.GetAllMyTransactions(userId);
+            IEnumerable<TransactionDto> myTransactions = await _transactionRepo.GetAllMyTransactions(userId);
             return View(myTransactions);
         }
 

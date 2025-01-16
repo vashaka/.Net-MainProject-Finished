@@ -39,10 +39,10 @@ else
                 method: 'GET',
                 dataType: 'json',
                 success: function (data) {
-                    console.log(data.CurrentBalance)
-                    const balance = data?.CurrentBalance;
-                    $('#walletBalance').text(`Balance: $${balance}`);
-                    console.log(balance);
+                    console.log(data[0])
+                    const resp = data[0];
+
+                    $('#walletBalance').text(`Balance: ${data[0].Currency === 1 ? "₾" : data[0].Currency === 2 ? "$" : data[0].Currency === 3 ? "€" : ""}${data[0].CurrentBalance}`);
                 },
                 error: function(xhr, status, error) {
                     console.error('Failed to fetch balance:', xhr.status, error);
