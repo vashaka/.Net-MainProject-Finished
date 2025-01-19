@@ -14,53 +14,64 @@
         <thead>
             <tr>
                 <th>Transaction ID</th>
+                <th>Transaction-Type</th>
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Date</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var transaction in Model)
-            {
-                <tr>
-                    <td>@transaction.Id</td>
-                    <td>@(transaction.Currency== 1 ? "₾" : transaction.Currency == 2 ? "$" :transaction.Currency == 3 ? "€":"idk")@transaction.Amount.ToString("0.00")</td>
-                    <td>@transaction.Status</td>
-                    <td>@transaction.CreatedAt.ToString("yyyy-MM-dd")</td>
-                </tr>
-            }
         </tbody>
     </table>
-@if(!Model.Any())
-{
-    <h1>No Transactions YET</h1>
-}
+    <h1 id="noTransactions" style="display: none;">No Transactions YET</h1>
 </div>
+
 <script>
-    console.log($("#startDate"))
     $(document).ready(function () {
         var table = $('#transactionsTable').DataTable();
 
-        $('#startDate, #endDate').on('change', function () {
-            var start = $('#startDate').val();
-            var end = $('#endDate').val();
-            table.draw();
-        });
+        function fetchTransactions(startDate, endDate) {
+            $.ajax({
+                url: '/Filter',
+                method: 'GET',
+                data: {
+                    startDate: startDate,
+                    endDate: endDate
+                },
+                success: function (data) {
+                    table.clear().draw();
 
-        $.fn.dataTable.ext.search.push(function (settings, data) {
+                    if (data.length === 0) {
+                        $('#noTransactions').show();
+                    } else {
+                        $('#noTransactions').hide();
+
+                        data.forEach(function (transaction) {
+                            var currencySymbol = transaction.currency === 1 ? "₾" :
+                                                 transaction.currency === 2 ? "$" :
+                                                 transaction.currency === 3 ? "€" : "idk";
+                            table.row.add([
+                                transaction.id,
+                                transaction.transactionType,
+                                currencySymbol + transaction.amount.toFixed(2),
+                                transaction.status,
+                                transaction.createdAt
+                            ]).draw(false);
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    console.error('Error fetching transactions:', xhr);
+                }
+            });
+        }
+
+        fetchTransactions();
+
+        $('#startDate, #endDate').on('change', function () {
             var startDate = $('#startDate').val();
             var endDate = $('#endDate').val();
-            var date = data[3]; 
-
-            if (!startDate && !endDate) return true;
-
-            var rowDate = new Date(date);
-
-            if ((startDate && rowDate < new Date(startDate)) ||
-                (endDate && rowDate > new Date(endDate))) {
-                return false;
-            }
-            return true;
+            fetchTransactions(startDate, endDate);
         });
     });
 </script>

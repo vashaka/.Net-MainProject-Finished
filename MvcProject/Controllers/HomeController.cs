@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MvcProject.Models;
-using MvcProject.Services;
+using MvcProject.Repositories;
 using System.Diagnostics;
 using System.Security.Claims;
 
@@ -38,6 +39,40 @@ namespace MvcProject.Controllers
             IEnumerable<TransactionDto> myTransactions = await _transactionRepo.GetAllMyTransactions(userId);
             return View(myTransactions);
         }
+
+        [HttpGet("Filter")]
+        public async Task<IActionResult> FilterTransactions(DateTime? startDate, DateTime? endDate)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null || userId == string.Empty)
+            {
+                return Unauthorized("User is not logged in.");
+            }
+            var filteredTransactions = await _transactionRepo.GetAllMyTransactions(userId);
+
+            if (startDate.HasValue)
+            {
+                filteredTransactions = filteredTransactions.Where(t => t.CreatedAt >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                filteredTransactions = filteredTransactions.Where(t => t.CreatedAt <= endDate.Value);
+            }
+
+            var result = filteredTransactions.Select(t => new
+            {
+                t.Id,
+                t.TransactionType,
+                t.Amount,
+                t.Currency,
+                t.Status,
+                CreatedAt = t.CreatedAt.ToString("yyyy-MM-dd")
+            }).ToList();
+
+            return Json(result);
+        }
+
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

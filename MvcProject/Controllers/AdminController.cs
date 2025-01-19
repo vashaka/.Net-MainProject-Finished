@@ -2,11 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MvcProject.Models;
-using MvcProject.Services;
-using System.Net.Http;
+using MvcProject.Repositories;
 using System.Text;
-using System.Security.Cryptography;
 using System.Linq;
+using MvcProject.Helpers;
 
 
 namespace MvcProject.Controllers
@@ -15,14 +14,14 @@ namespace MvcProject.Controllers
     public class AdminController : Controller
     {
         private readonly IAdminRepository _adminRepo;
-        private readonly HttpClient _httpClient;
         private readonly IDepositWithdrawRepository _depositWithdrawRepo;
+        private readonly BankingApiService _bankingApiService;
 
-        public AdminController(IAdminRepository adminRepo, HttpClient http, IDepositWithdrawRepository depositWithdrawRepo)
+        public AdminController(IAdminRepository adminRepo, IDepositWithdrawRepository depositWithdrawRepo, BankingApiService bankingApiService)
         {
-            _httpClient = http;
             _adminRepo = adminRepo;
             _depositWithdrawRepo = depositWithdrawRepo;
+            _bankingApiService = bankingApiService;
         }
         public async Task<IActionResult> Index()
         {
@@ -37,62 +36,17 @@ namespace MvcProject.Controllers
         {
             if (status == "Rejected")
             {
-                await _depositWithdrawRepo.UpdateDepositWithdrawStatusAsync(id, status);
+                bool fromAdmin = true;
+                // Status Always rejected passed to Repo
+                await _depositWithdrawRepo.UpdateWithdrawStatusAsync(id, amount, fromAdmin);
                 return Ok();
             }
             const string secretKey = "vashaka_secret_keyy";
-            Console.WriteLine("From BankingApi");
-            string hash = GenerateSHA256Hash(
-                    amount.ToString(),
-                    userId,
-                    id.ToString(),
-                    secretKey
-            );
+            string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), userId, id.ToString(),secretKey);
 
 
-            Console.WriteLine("HEYYEYEYEYEYEYE");
-            Console.WriteLine($"Id: {id}, Amount: {amount}, Status: {status}, TransactionType: {transactionType}, UserId: {userId}");
-            await CallAdminBankingApi(id, amount, status, transactionType, userId, hash);
+            await _bankingApiService.CallAdminBankingApi(id, amount, status, transactionType, userId, hash);
             return Ok();
-        }
-
-
-         private async Task CallAdminBankingApi(int id, decimal amount, string status, string transactionType, string userId, string hash)
-         {
-             var bankingApiUrl = "https://localhost:7194/api/BankingApi/Withdraw";
-
-             var payload = new
-             {
-                 DepositWithdrawRequestId = id,
-                 Amount = amount,
-                 Status = status,
-                 TransactionType = transactionType,
-                 UserId = userId,
-                 Hash = hash
-             };
-
-             var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-             var response = await _httpClient.PostAsync(bankingApiUrl, content);
-
-             if (response.IsSuccessStatusCode)
-             {
-                 var responseBody = await response.Content.ReadAsStringAsync();
-                 Console.WriteLine("Response Body: " + responseBody); // Log response 
-             }
-             else
-             {
-                 throw new Exception($"Banking API call failed: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
-             }
-         }
-
-        public static string GenerateSHA256Hash(string amount, string userId, string transactionId, string secretKey)
-        {
-            var concatenatedString = string.Join("+", new[] { amount, userId, transactionId, secretKey });
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(concatenatedString));
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-            }
         }
     }
 }

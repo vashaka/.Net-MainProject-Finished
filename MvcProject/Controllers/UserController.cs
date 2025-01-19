@@ -8,33 +8,34 @@ namespace MvcProject.Controllers
 {
     [ApiController]
     [Route("api/user")]
-    public class UserController : ControllerBase
+    public class UserController(IConfiguration config) : ControllerBase
     {
-        private readonly string _connectionString;
-
-        public UserController(IConfiguration config)
-        {
-            _connectionString = config.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
-        }
+        private readonly string _connectionString = config.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
 
         [HttpGet("get-ballance")]
         [Authorize]
         public async Task<IActionResult> GetWalletBalance()
         {
-            var userId =User.FindFirstValue(ClaimTypes.NameIdentifier);
-            using(var connection = new SqlConnection(_connectionString))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
             {
-                string sql = "SELECT CurrentBalance, Currency FROM Wallets WHERE UserId = @UserId";
-                var resp = await connection.QueryAsync(sql, new {UserId = userId});
-                Console.WriteLine("balance updates");
-
-                if (resp == null)
-                {
-                    return NotFound("Wallet not found for the user.");
-                }
-
-                return Ok(resp);
+                return Unauthorized("User is not logged in.");
             }
+
+            using var connection = new SqlConnection(_connectionString);
+            string sql = "SELECT CurrentBalance, Currency FROM Wallets WHERE UserId = @UserId";
+
+            var parameters = new DynamicParameters();
+            parameters.Add("UserId", userId);
+            var resp = await connection.QueryAsync(sql, parameters);
+
+            if (resp == null || !resp.Any())
+            {
+                return NotFound("Wallet not found for the user.");
+            }
+
+            return Ok(resp);
         }
+
     }
 }

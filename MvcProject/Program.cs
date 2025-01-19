@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using MvcProject.Data;
 using MvcProject.Models;
+using MvcProject.Repositories;
 using MvcProject.Services;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,15 +12,16 @@ builder.Services.AddScoped<IDepositWithdrawRepository, DepositWithdrawRepository
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+builder.Services.AddScoped<IWalletService, WalletService>();
+
+builder.Services.AddHttpClient<BankingApiService>();
+
 builder.Services.AddHttpClient();
 
 
 var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
-
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
-
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true).AddRoles<IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>();
-
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -52,7 +54,7 @@ app.MapRazorPages();
 
 app.UseAuthorization();
 
-async Task SeedRolesAndAdminAsync(IServiceProvider services)
+static async Task SeedRolesAndAdminAsync(IServiceProvider services)
 {
     var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
@@ -82,7 +84,6 @@ async Task SeedRolesAndAdminAsync(IServiceProvider services)
         var result = await userManager.CreateAsync(adminUser, adminPassword);
         if (result.Succeeded)
         {
-            Console.WriteLine("added");
             await userManager.AddToRoleAsync(adminUser, "Admin");
         }
     }

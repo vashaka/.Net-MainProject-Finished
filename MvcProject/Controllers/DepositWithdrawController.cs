@@ -2,7 +2,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using MvcProject.Helpers;
 using MvcProject.Models;
+using MvcProject.Repositories;
 using MvcProject.Services;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -14,14 +16,16 @@ namespace MvcProject.Controllers
     public class DepositWithdrawController : Controller
     {
         private readonly IDepositWithdrawRepository _depWithRepo;
-        private readonly HttpClient _httpClient;
-        private readonly string _connectionString;
+        private readonly IWalletService _walletService;
+        private readonly BankingApiService _bankingApiService;
+        private readonly ILogger<DepositWithdrawController> _logger;
 
-        public DepositWithdrawController(IDepositWithdrawRepository depWithRepo, HttpClient http, IConfiguration configuration)
+        public DepositWithdrawController(IDepositWithdrawRepository depWithRepo, IWalletService walletService, BankingApiService bankingApiService, ILogger<DepositWithdrawController> logger)
         {
+            _walletService = walletService;
             _depWithRepo = depWithRepo;
-            _httpClient = http;
-            _connectionString = configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
+            _bankingApiService = bankingApiService;
+            _logger = logger;
         }
 
         public IActionResult Deposit()
@@ -38,36 +42,17 @@ namespace MvcProject.Controllers
             {
                 return Unauthorized("User is not logged in.");
             }
-            var req = new DepositWithdrawRequest
-            {
-                UserId = userId,
-                TransactionType = "Deposit",
-                Amount = amount,
-                Status = "Pending",
-                CreatedAt = DateTime.UtcNow
-            };
-
             try
             {
-                int depositWithdrawId = await _depWithRepo.AddRequestAsync(req);
-                const string secretKey = "vashaka_secret_keyy";
-                string hash = GenerateSHA256Hash(
-                    amount.ToString(),
-                    userId,
-                    depositWithdrawId.ToString(),
-                    secretKey
-                );
-                //decimal amountInCents1 = amountInCents;
-                // sending to bankingApi
-                var bankingApiResponse = await CallDepositBankingAPi(amount, userId, depositWithdrawId, hash);
+                // EVERYTHING HAPPENS IN SERVICE
+                var bankingApiResponse = await _bankingApiService.CallDepositBankingApiAsync(amount, userId);
 
-                Console.WriteLine("DepositWithdrawRequest should not be changed!!");
                 string redirectUrl = $"https://localhost:7200/CallBack/{bankingApiResponse.Hash}/{bankingApiResponse.DepositWithdrawRequestId}";
                 return Ok(new { redirectUrl });
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error on  deposit: {ex.Message}");
+                _logger.LogError("Error on deposit: {Message}", ex.Message);
                 return StatusCode(500, "error during req");
             }
         }
@@ -77,94 +62,30 @@ namespace MvcProject.Controllers
         {
             return View();
         }
-
         [HttpPost]
         public async Task<IActionResult> SubmitWithdraw(decimal amount)
         {
-            Console.WriteLine("REQUEST COMMING");
-            //var amountInCents = amount * 100;
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId))
             {
-                return Unauthorized("User is not logged in.");
+                return Unauthorized(new { Message = "User is not logged in." });
             }
-            string sql = @"SELECT CurrentBalance FROM Wallets WHERE UserId = @UserId";
+
             try
             {
-                using (var connection = new SqlConnection(_connectionString))
+                var (success, message) = await _walletService.ValidateWithdrawAsync(userId, amount);
+                if (!success)
                 {
-                    await connection.OpenAsync();
-                    int currentBalance = await connection.QuerySingleAsync<int>(sql, new {UserId = userId});
-                    if(amount > currentBalance)
-                    {
-                        return Ok(new { Message = "Not Enough on ballance!!!" });
-                    }
+                    return Ok(new { Message = message });
                 }
-            }
-            catch (SqlException ex)
-            {
-                Console.Error.WriteLine($"Database operation failed: {ex.Message}");
-                throw;
-            }
 
-
-            var req = new DepositWithdrawRequest
-            {
-                UserId = userId,
-                TransactionType = "Withdraw",
-                Amount = amount,
-                Status = "Pending",
-                CreatedAt = DateTime.UtcNow
-            };
-
-            try
-            {
-                int depositWithdrawId = await _depWithRepo.AddRequestAsync(req);
+                int depositWithdrawId = await _depWithRepo.AddWithdrawRequestAsync(userId, amount);
                 return Ok();
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Error on withdraw: {ex.Message}");
-                return StatusCode(500, "error during req");
-            }
-        }
-
-        public static string GenerateSHA256Hash(string amount, string userId, string transactionId, string secretKey)
-        {
-            var concatenatedString = string.Join("+", new[] { amount, userId, transactionId, secretKey });
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(concatenatedString));
-                return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-            }
-        }
-
-
-        private async Task<BankingApiResponse> CallDepositBankingAPi(decimal amount, string userId, int depositWithDrawId, string hash)
-        {
-            var bankingApiUrl = "https://localhost:7194/api/BankingApi/Deposit";
-
-            var payload = new
-            {
-                Amount = amount,
-                UserId = userId,
-                DepositWithdrawRequestId = depositWithDrawId,
-                Hash = hash
-            };
-
-            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync(bankingApiUrl, content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var responseBody = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("Response Body: " + responseBody); // Log response 
-                return System.Text.Json.JsonSerializer.Deserialize<BankingApiResponse>(responseBody);
-            }
-            else
-            {
-                Console.WriteLine("error");
-                throw new Exception($"Banking API call failed: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+                _logger.LogError("Error during withdrawal: {Message}", ex.Message);
+                return StatusCode(500, new { Message = "An error occurred during the withdrawal request." });
             }
         }
     }

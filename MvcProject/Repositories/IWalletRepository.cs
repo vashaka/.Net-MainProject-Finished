@@ -1,4 +1,4 @@
-﻿namespace MvcProject.Services
+﻿namespace MvcProject.Repositories
 {
     public interface IWalletRepository
     {

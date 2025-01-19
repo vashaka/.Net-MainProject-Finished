@@ -16,23 +16,35 @@
         </div>
     </div>
     <div>
-@*     <a asp-controller="DepositWithdraw" asp-action="Deposit" class="btn btn-danger mt-3">Back to Home</a>
- *@    
- <a class="btn btn-primary mt-3">Go To My Transactions</a>
-    </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button id="depositFinishBtn" class="btn btn-success mt-3">Finish Deposit</button>
+        </div>
 </div>
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function () {
-            const confirmButton = $(".btn-primary");
+            const depositFinishBtn = $("#depositFinishBtn");
             const depWithId = $(".depWithId").text().trim();
 
-            confirmButton.on("click", function () {
-                console.log("Request ID:", depWithId);
-                        window.location.href = "https://localhost:7200/Home/Transactions"
-            });
-        });
+            depositFinishBtn.on("click", function () {
+                console.log("Requesting DepositFinish for ID:", depWithId);
+
+                $.ajax({
+                    url: `/Confirm/${depWithId}`,
+                        type: "POST",
+                            success: function (response) {
+                                console.log("DepositFinish successful:", response);
+                                // alert("Deposit completed successfully!");
+                                // Redirecting.......
+                                window.location.href = "/Home/Transactions";
+                            },
+                            error: function (xhr, status, error) {
+                                console.error("Error in DepositFinish:", error);
+                                alert("Failed to finish deposit. Please try again.");
+                            }
+                        });
+                    });
+                });
     </script>
 }
-

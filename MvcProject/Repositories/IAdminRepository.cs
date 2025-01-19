@@ -1,6 +1,6 @@
 ﻿using MvcProject.Models;
 
-namespace MvcProject.Services
+namespace MvcProject.Repositories
 {
     public interface IAdminRepository
     {
