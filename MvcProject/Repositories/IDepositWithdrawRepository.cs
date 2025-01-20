@@ -8,5 +8,6 @@ namespace MvcProject.Repositories
         Task<int> AddWithdrawRequestAsync(string userId, decimal amount);
         Task UpdateWithdrawStatusAsync(int depositWithdrawId, decimal amount, bool fromAdmin);
         Task<DepositWithdrawRequest?> GetRequestByIdAndUserIdAsync(int depositWithdrawId, string userId);
+        Task<DepositWithdrawRequest?> GetRequestByIdAsync(int depositWithdrawId);
     }
 }

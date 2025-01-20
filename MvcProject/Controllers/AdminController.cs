@@ -42,10 +42,10 @@ namespace MvcProject.Controllers
                 return Ok();
             }
             const string secretKey = "vashaka_secret_keyy";
-            string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), userId, id.ToString(),secretKey);
+            string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), id.ToString(),secretKey);
 
 
-            await _bankingApiService.CallAdminBankingApi(id, amount, status, transactionType, userId, hash);
+            await _bankingApiService.CallAdminBankingApi(id, amount, status, transactionType, hash);
             return Ok();
         }
     }

@@ -12,7 +12,7 @@ namespace BankingApi.Services
             _httpClient = httpClient;
             _logger = logger;
         }
-        public async Task<string> CallCallBackControllerWithdraw(int depositWithDrawId, string userId, string status)
+        public async Task<string> CallCallBackControllerWithdraw(int depositWithDrawId, string status)
         {
             _logger.LogInformation("BankignApi is calling to CalbackController");
             var bankingApiUrl = "https://localhost:7200/CallBack/Withdraw/Confirm";
@@ -20,7 +20,6 @@ namespace BankingApi.Services
             var payload = new
             {
                 RequestId = depositWithDrawId,
-                UserId = userId,
                 Status = status
             };
 
@@ -30,7 +29,7 @@ namespace BankingApi.Services
             if (response.IsSuccessStatusCode)
             {
                 var responseBody = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("Response Body: " + responseBody);
+                _logger.LogInformation("Response Body: {Message}", responseBody);
                 return "OK";
                 //return System.Text.Json.JsonSerializer.Deserialize(responseBody);
             }

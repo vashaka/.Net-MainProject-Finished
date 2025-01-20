@@ -73,7 +73,7 @@ namespace MvcProject.Controllers
                 }
 
                 const string secretKey = "vashaka_secret_keyy";
-                string hash = HashingHelper.GenerateSHA256Hash(depositRequest.Amount.ToString(),userId,depositWithdrawRequestId.ToString(),secretKey);
+                string hash = HashingHelper.GenerateSHA256Hash(depositRequest.Amount.ToString(), depositWithdrawRequestId.ToString(), secretKey);
 
                 // Transaction it is been registered in bankingApiservice
                 await _bankingApiService.CallFinishDepositBankingApiAsync(depositRequest.Amount, depositRequest.UserId, depositWithdrawRequestId, hash);
@@ -91,19 +91,13 @@ namespace MvcProject.Controllers
         [Route("CallBack/Withdraw/Confirm")]
         public async Task<IActionResult> ConfirmWithdrawRequest([FromBody] IncomingAdminWithdrawRequestDto req)
         {
-            if (string.IsNullOrEmpty(req.UserId))
-            {
-                _logger.LogInformation("User ID not found. Ensure the user is logged in..");
-                return Unauthorized("User ID not found. Ensure the user is logged in.");
-            }
-
-            DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAndUserIdAsync(req.RequestId, req.UserId);
+            DepositWithdrawRequest? depositWithdrawRequest = await _depWithRepo.GetRequestByIdAsync(req.RequestId);
             if (depositWithdrawRequest == null)
             {
                 return NotFound("Request not found or does not belong to the user.");
             }
 
-            string resp = await _transactionRepo.CreateWithdrawTransactionAsync(req.UserId, req.Status, depositWithdrawRequest.Amount, req.RequestId);
+            string resp = await _transactionRepo.CreateWithdrawTransactionAsync(depositWithdrawRequest.UserId, req.Status, depositWithdrawRequest.Amount, req.RequestId);
 
             if(resp == "ERROR")
             {

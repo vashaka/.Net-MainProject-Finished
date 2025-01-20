@@ -20,7 +20,7 @@ public class BankingApiService
         _logger = logger;
     }
 
-    public async Task CallAdminBankingApi(int id, decimal amount, string status, string transactionType, string userId, string hash)
+    public async Task CallAdminBankingApi(int id, decimal amount, string status, string transactionType, string hash)
     {
         var bankingApiUrl = "https://localhost:7194/api/BankingApi/Withdraw";
 
@@ -30,7 +30,6 @@ public class BankingApiService
             Amount = amount,
             Status = status,
             TransactionType = transactionType,
-            UserId = userId,
             Hash = hash
         };
 
@@ -54,15 +53,14 @@ public class BankingApiService
         // TEST THIS ........
         int depositWithdrawId = await _depWithRepo.AddDepositRequestAsync(userId, amount);
         const string secretKey = "vashaka_secret_keyy";
-        string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), userId, depositWithdrawId.ToString(), secretKey);
+        string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(),depositWithdrawId.ToString(), secretKey);
         var bankingApiUrl = "https://localhost:7194/api/BankingApi/Deposit";
 
         var payload = new
         {
             Amount = amount,
-            UserId = userId,
             DepositWithdrawRequestId = depositWithdrawId,
-            Hash = hash
+            Hash = hash,
         };
 
         var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
@@ -88,9 +86,8 @@ public class BankingApiService
         var payload = new
         {
             Amount = amount,
-            UserId = userId,
             DepositWithdrawRequestId = depositWithdrawId,
-            Hash = hash
+            Hash = hash,
         };
 
         var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");

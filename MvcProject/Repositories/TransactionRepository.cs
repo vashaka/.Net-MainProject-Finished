@@ -3,6 +3,7 @@ using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using MvcProject.Models;
+using System.Data;
 
 namespace MvcProject.Repositories
 {
@@ -18,26 +19,28 @@ namespace MvcProject.Repositories
         }
         public async Task CreateDepositTransactionAsync(string userId, string status, decimal amount, int depositWithdrawRequestId)
         {
-            const string sql = @"
-        EXEC InsertDepositTransaction 
-            @UserId, 
-            @Amount, 
-            @Status, 
-            @DepositWithdrawRequestId;
-    ";
-
             try
             {
                 using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
 
                 var parameters = new DynamicParameters();
-                parameters.Add("UserId", userId);
-                parameters.Add("Amount", amount);
-                parameters.Add("Status", status);
-                parameters.Add("DepositWithdrawRequestId", depositWithdrawRequestId);
+                parameters.Add("@UserId", userId);
+                parameters.Add("@Amount", amount);
+                parameters.Add("@Status", status);
+                parameters.Add("@DepositWithdrawRequestId", depositWithdrawRequestId);
+                parameters.Add("ErrorCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ErrorMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync("InsertDepositTransaction", parameters, commandType: CommandType.StoredProcedure);
+                int errorCode = parameters.Get<int>("ErrorCode");
+                string errorMessage = parameters.Get<string>("ErrorMessage");
+
+                if (errorCode != 0)
+                {
+                    _logger.LogError("Database operation failed: ErrorCode {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
+                    throw new Exception($"Error Code: {errorCode}, Message: {errorMessage}");
+                }
             }
             catch (SqlException ex)
             {
@@ -47,17 +50,10 @@ namespace MvcProject.Repositories
         }
 
 
+
         public async Task<string> CreateWithdrawTransactionAsync(string userId, string status, decimal amount, int depositWithdrawRequestId)
         {
             _logger.LogInformation("Withdraw transaction successfully started!!!!");
-
-            const string sql = @"
-        EXEC InsertWithdrawTransaction 
-            @UserId, 
-            @Amount, 
-            @Status, 
-            @DepositWithdrawRequestId;
-    ";
 
             try
             {
@@ -65,12 +61,24 @@ namespace MvcProject.Repositories
                 await connection.OpenAsync();
 
                 var parameters = new DynamicParameters();
-                parameters.Add("UserId", userId);
-                parameters.Add("Amount", amount);
-                parameters.Add("Status", status);
-                parameters.Add("DepositWithdrawRequestId", depositWithdrawRequestId);
+                parameters.Add("@UserId", userId);
+                parameters.Add("@Amount", amount);
+                parameters.Add("@Status", status);
+                parameters.Add("@DepositWithdrawRequestId", depositWithdrawRequestId);
+                parameters.Add("ErrorCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ErrorMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync("InsertWithdrawTransaction", parameters, commandType: CommandType.StoredProcedure);
+
+                int errorCode = parameters.Get<int>("ErrorCode");
+                string errorMessage = parameters.Get<string>("ErrorMessage");
+
+                if (errorCode != 0)
+                {
+                    _logger.LogError("Error occurred: {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
+                    return $"ERROR: {errorMessage}";
+                }
+
                 return "OK";
             }
             catch (SqlException ex)
@@ -79,6 +87,7 @@ namespace MvcProject.Repositories
                 return "ERROR";
             }
         }
+
 
 
         public async Task<IEnumerable<TransactionDto>> GetAllMyTransactions(string userId)

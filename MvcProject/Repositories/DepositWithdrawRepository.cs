@@ -52,17 +52,16 @@ namespace MvcProject.Repositories
             }
         }
 
-
-        public async Task<int> AddDepositRequestAsync(string userId, decimal amount)
+        public async Task<DepositWithdrawRequest?> GetRequestByIdAsync(int depositWithdrawId)
         {
-            ArgumentNullException.ThrowIfNull(userId);
 
             const string sql = @"
-                EXEC AddDepositRequest 
-                    @UserId, 
-                    @Amount,
-                    @NewRequestId OUTPUT;
-                ";
+                SELECT 
+                    Id, UserId, TransactionType, Amount, Status, CreatedAt 
+                FROM DepositWithdrawRequests 
+                WHERE 
+                    Id = @Id;
+            ";
 
             try
             {
@@ -70,13 +69,11 @@ namespace MvcProject.Repositories
                 await connection.OpenAsync();
 
                 var parameters = new DynamicParameters();
-                parameters.Add("@UserId", userId);
-                parameters.Add("@Amount", amount);
-                parameters.Add("@NewRequestId", dbType: System.Data.DbType.Int32, direction: System.Data.ParameterDirection.Output);
+                parameters.Add("Id", depositWithdrawId);
 
-                await connection.ExecuteAsync(sql, parameters).ConfigureAwait(false);
-                int id = parameters.Get<int>("@NewRequestId");
-                return id;
+                var request = await connection.QueryFirstOrDefaultAsync<DepositWithdrawRequest>(sql, parameters);
+
+                return request;
             }
             catch (SqlException ex)
             {
@@ -85,15 +82,10 @@ namespace MvcProject.Repositories
             }
         }
 
-        public async Task<int> AddWithdrawRequestAsync(string userId, decimal amount)
-        {
-            const string sql = @"
-        EXEC CreateWithdrawRequest 
-            @UserId, 
-            @Amount, 
-            @NewRequestId OUTPUT;
-    ";
 
+        public async Task<int> AddDepositRequestAsync(string userId, decimal amount)
+        {
+            ArgumentNullException.ThrowIfNull(userId);
             try
             {
                 using var connection = new SqlConnection(_connectionString);
@@ -102,12 +94,56 @@ namespace MvcProject.Repositories
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
                 parameters.Add("@Amount", amount);
-                parameters.Add("@NewRequestId", dbType: System.Data.DbType.Int32, direction: System.Data.ParameterDirection.Output);
+                parameters.Add("@NewRequestId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters).ConfigureAwait(false);
+                await connection.ExecuteAsync("AddDepositRequest", parameters, commandType: CommandType.StoredProcedure).ConfigureAwait(false);
 
-                // OUTPUT int
+                int returnCode = parameters.Get<int>("ReturnCode");
+                string returnMessage = parameters.Get<string>("ReturnMessage") ?? "Unknown error.";
+                int id = parameters.Get<int?>("@NewRequestId") ?? 0;
+
+                if (returnCode != 0)
+                {
+                    throw new InvalidOperationException($"Stored procedure error (Code: {returnCode}): {returnMessage}");
+                }
+
+                return id;
+            }
+            catch (SqlException ex)
+            {
+                _logger.LogError(ex, "Database operation failed in {MethodName}: {Message}", nameof(AddDepositRequestAsync), ex.Message);
+                throw new Exception("Database operation failed. Please try again later.", ex);
+            }
+        }
+
+
+        public async Task<int> AddWithdrawRequestAsync(string userId, decimal amount)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@UserId", userId);
+                parameters.Add("@Amount", amount);
+                parameters.Add("@NewRequestId", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync("CreateWithdrawRequest", parameters, commandType: CommandType.StoredProcedure).ConfigureAwait(false);
+
+                int returnCode = parameters.Get<int>("ReturnCode");
+                string returnMessage = parameters.Get<string>("ReturnMessage");
                 int newRequestId = parameters.Get<int>("@NewRequestId");
+
+                if (returnCode != 0)
+                {
+                    throw new Exception($"Error {returnCode}: {returnMessage}");
+                }
+
                 return newRequestId;
             }
             catch (SqlException ex)
@@ -117,30 +153,30 @@ namespace MvcProject.Repositories
             }
         }
 
-
-
-
         public async Task UpdateWithdrawStatusAsync(int depositWithdrawId, decimal amount, bool fromAdmin)
         {
-            // Status is Always Rejected here
-            const string sql = @"
-                EXEC UpdateWithdrawRequestStatus 
-                @RequestId, 
-                @Amount,
-                @FromAdmin;
-            ";
-
             try
             {
                 using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
 
                 var parameters = new DynamicParameters();
-                parameters.Add("RequestId", depositWithdrawId);
-                parameters.Add("Amount", amount);
-                parameters.Add("FromAdmin", fromAdmin);
+                parameters.Add("@depositWithdrawId", depositWithdrawId);  // Correct parameter name
+                parameters.Add("@Amount", amount);
+                parameters.Add("@FromAdmin", fromAdmin);
+                parameters.Add("ErrorCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ErrorMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
 
-                await connection.ExecuteAsync(sql, parameters);
+                await connection.ExecuteAsync("UpdateWithdrawRequestStatus", parameters, commandType: CommandType.StoredProcedure).ConfigureAwait(false);
+
+                int errorCode = parameters.Get<int>("ErrorCode");
+                string errorMessage = parameters.Get<string>("ErrorMessage");
+
+                if (errorCode != 0)
+                {
+                    _logger.LogError("Database operation failed: ErrorCode {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
+                    throw new Exception($"Error Code: {errorCode}, Message: {errorMessage}");
+                }
             }
             catch (SqlException ex)
             {

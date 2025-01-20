@@ -4,7 +4,6 @@
     {
         public int DepositWithdrawRequestId { get; set; }
         public decimal Amount { get; set; }
-        public string UserId { get; set; }
         public string Hash { get; set; }
     }
 }

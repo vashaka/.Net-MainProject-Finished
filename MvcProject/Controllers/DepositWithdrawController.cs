@@ -62,6 +62,7 @@ namespace MvcProject.Controllers
         {
             return View();
         }
+
         [HttpPost]
         public async Task<IActionResult> SubmitWithdraw(decimal amount)
         {
