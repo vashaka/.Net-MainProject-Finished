@@ -6,9 +6,8 @@ namespace MvcProject.Helpers
 {
     public static class HashingHelper
     {
-        public static string GenerateSHA256Hash(string amount, string transactionId, string secretKey)
+        public static string GenerateSHA256Hash(string amount, string transactionId, string secretKey, string MerchantId)
         {
-            string MerchantId = "167890527";
             var concatenatedString = string.Join("+", new[] { amount, transactionId, secretKey, MerchantId });
             using (SHA256 sha256 = SHA256.Create())
             {

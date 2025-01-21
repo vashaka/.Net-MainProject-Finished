@@ -16,12 +16,14 @@ namespace MvcProject.Controllers
         private readonly IAdminRepository _adminRepo;
         private readonly IDepositWithdrawRepository _depositWithdrawRepo;
         private readonly BankingApiService _bankingApiService;
+        private readonly IConfiguration _configuration;
 
-        public AdminController(IAdminRepository adminRepo, IDepositWithdrawRepository depositWithdrawRepo, BankingApiService bankingApiService)
+        public AdminController(IAdminRepository adminRepo, IDepositWithdrawRepository depositWithdrawRepo, BankingApiService bankingApiService, IConfiguration configuration)
         {
             _adminRepo = adminRepo;
             _depositWithdrawRepo = depositWithdrawRepo;
             _bankingApiService = bankingApiService;
+            _configuration = configuration;
         }
         public async Task<IActionResult> Index()
         {
@@ -32,7 +34,7 @@ namespace MvcProject.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AdminApproveReject(int id, decimal amount, string status, string transactionType, string userId)
+        public async Task<IActionResult> AdminApproveReject(int id, decimal amount, string status)
         {
             if (status == "Rejected")
             {
@@ -41,11 +43,11 @@ namespace MvcProject.Controllers
                 await _depositWithdrawRepo.UpdateWithdrawStatusAsync(id, amount, fromAdmin);
                 return Ok();
             }
-            const string secretKey = "vashaka_secret_keyy";
-            string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), id.ToString(),secretKey);
+            string secretKey = _configuration["AppSettings:SecretKey"]!;
+            string MerchantId = _configuration["AppSettings:MerchantId"]!;
+            string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), id.ToString(),secretKey, MerchantId);
 
-
-            await _bankingApiService.CallAdminBankingApi(id, amount, status, transactionType, hash);
+            await _bankingApiService.CallAdminBankingApi(id, amount, status, hash);
             return Ok();
         }
     }

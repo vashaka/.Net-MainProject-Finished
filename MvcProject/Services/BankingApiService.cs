@@ -10,26 +10,28 @@ public class BankingApiService
     private readonly HttpClient _httpClient;
     private readonly IDepositWithdrawRepository _depWithRepo;
     private readonly ITransactionRepository _transactionRepo;
-    private readonly ILogger<BankingApiResponse> _logger;
+    private readonly ILogger<BankingApiService> _logger;
+    private readonly IConfiguration _configuration;
 
-    public BankingApiService(HttpClient httpClient, IDepositWithdrawRepository depWithRepo, ITransactionRepository transactionRepo, ILogger<BankingApiResponse> logger)
+    public BankingApiService(HttpClient httpClient, IDepositWithdrawRepository depWithRepo, ITransactionRepository transactionRepo, ILogger<BankingApiService> logger, IConfiguration configuration)
     {
         _httpClient = httpClient;
         _depWithRepo = depWithRepo;
         _transactionRepo = transactionRepo;
         _logger = logger;
+        _configuration = configuration;
     }
 
-    public async Task CallAdminBankingApi(int id, decimal amount, string status, string transactionType, string hash)
+    public async Task<string> CallAdminBankingApi(int id, decimal amount, string status, string hash)
     {
-        var bankingApiUrl = "https://localhost:7194/api/BankingApi/Withdraw";
+        string baseUrl = _configuration["AppSettings:BankingApiBaseUrl"]!;
+        var bankingApiUrl = $"{baseUrl}/BankingApi/Withdraw";
 
         var payload = new
         {
             DepositWithdrawRequestId = id,
             Amount = amount,
             Status = status,
-            TransactionType = transactionType,
             Hash = hash
         };
 
@@ -40,11 +42,17 @@ public class BankingApiService
         {
             var responseBody = await response.Content.ReadAsStringAsync();
             _logger.LogInformation("Response Body: {message}", responseBody);
+            var resp = System.Text.Json.JsonSerializer.Deserialize<BankingApiResponse>(responseBody);
+            if(resp != null)
+            {
+                return resp.Status;
+            }
+            return "Rejected";
         }
         else
         {
             _logger.LogWarning("Error");
-            throw new Exception($"Banking API call failed: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+            return "Rejected";
         }
     }
 
@@ -52,9 +60,11 @@ public class BankingApiService
     {
         // TEST THIS ........
         int depositWithdrawId = await _depWithRepo.AddDepositRequestAsync(userId, amount);
-        const string secretKey = "vashaka_secret_keyy";
-        string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(),depositWithdrawId.ToString(), secretKey);
-        var bankingApiUrl = "https://localhost:7194/api/BankingApi/Deposit";
+        string secretKey = _configuration["AppSettings:SecretKey"]!;
+        string baseUrl = _configuration["AppSettings:BankingApiBaseUrl"]!;
+        string MerchantId = _configuration["AppSettings:MerchantId"]!;
+        string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(),depositWithdrawId.ToString(), secretKey, MerchantId);
+        var bankingApiUrl = $"{baseUrl}/BankingApi/Deposit";
 
         var payload = new
         {
@@ -81,7 +91,8 @@ public class BankingApiService
 
     public async Task CallFinishDepositBankingApiAsync(decimal amount, string userId, int depositWithdrawId, string hash)
     {
-        var bankingApiUrl = "https://localhost:7194/api/BankingApi/DepositFinish";
+        string baseUrl = _configuration["AppSettings:BankingApiBaseUrl"]!;
+        var bankingApiUrl = $"{baseUrl}/BankingApi/DepositFinish";
 
         var payload = new
         {

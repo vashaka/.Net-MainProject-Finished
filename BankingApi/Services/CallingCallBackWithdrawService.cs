@@ -7,15 +7,18 @@ namespace BankingApi.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<CallingCallBackWithdrawService> _logger;
-        public CallingCallBackWithdrawService(HttpClient httpClient, ILogger<CallingCallBackWithdrawService> logger)
+        private readonly IConfiguration _configuration;
+        public CallingCallBackWithdrawService(HttpClient httpClient, ILogger<CallingCallBackWithdrawService> logger, IConfiguration configuration)
         {
             _httpClient = httpClient;
             _logger = logger;
+            _configuration = configuration;
         }
         public async Task<string> CallCallBackControllerWithdraw(int depositWithDrawId, string status)
         {
             _logger.LogInformation("BankignApi is calling to CalbackController");
-            var bankingApiUrl = "https://localhost:7200/CallBack/Withdraw/Confirm";
+            string MvcBaseUrl = _configuration["AppSettings:MvcBaseUrl"]!;
+            var bankingApiUrl = $"{MvcBaseUrl}/CallBack/Withdraw/Confirm";
 
             var payload = new
             {

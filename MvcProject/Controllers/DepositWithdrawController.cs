@@ -5,7 +5,6 @@ using Microsoft.Data.SqlClient;
 using MvcProject.Helpers;
 using MvcProject.Models;
 using MvcProject.Repositories;
-using MvcProject.Services;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -16,13 +15,11 @@ namespace MvcProject.Controllers
     public class DepositWithdrawController : Controller
     {
         private readonly IDepositWithdrawRepository _depWithRepo;
-        private readonly IWalletService _walletService;
         private readonly BankingApiService _bankingApiService;
         private readonly ILogger<DepositWithdrawController> _logger;
 
-        public DepositWithdrawController(IDepositWithdrawRepository depWithRepo, IWalletService walletService, BankingApiService bankingApiService, ILogger<DepositWithdrawController> logger)
+        public DepositWithdrawController(IDepositWithdrawRepository depWithRepo, BankingApiService bankingApiService, ILogger<DepositWithdrawController> logger)
         {
-            _walletService = walletService;
             _depWithRepo = depWithRepo;
             _bankingApiService = bankingApiService;
             _logger = logger;
@@ -36,7 +33,6 @@ namespace MvcProject.Controllers
         [HttpPost]
         public async Task<IActionResult> SubmitDeposit(decimal amount)
         {
-            //var amountInCents = amount * 100;
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
@@ -46,9 +42,7 @@ namespace MvcProject.Controllers
             {
                 // EVERYTHING HAPPENS IN SERVICE
                 var bankingApiResponse = await _bankingApiService.CallDepositBankingApiAsync(amount, userId);
-
-                string redirectUrl = $"https://localhost:7200/CallBack/{bankingApiResponse.Hash}/{bankingApiResponse.DepositWithdrawRequestId}";
-                return Ok(new { redirectUrl });
+                return Ok(new { redirectUrl = bankingApiResponse.RedirectUrl });
             }
             catch (Exception ex)
             {
@@ -74,19 +68,17 @@ namespace MvcProject.Controllers
 
             try
             {
-                var (success, message) = await _walletService.ValidateWithdrawAsync(userId, amount);
-                if (!success)
+                var depositWithdrawResp = await _depWithRepo.AddWithdrawRequestAsync(userId, amount);
+                if (depositWithdrawResp.Item1 == 0)
                 {
-                    return Ok(new { Message = message });
+                    return Ok(new { Message = depositWithdrawResp.Item2 });
                 }
-
-                int depositWithdrawId = await _depWithRepo.AddWithdrawRequestAsync(userId, amount);
                 return Ok();
             }
             catch (Exception ex)
             {
                 _logger.LogError("Error during withdrawal: {Message}", ex.Message);
-                return StatusCode(500, new { Message = "An error occurred during the withdrawal request." });
+                return StatusCode(500, new { Message = "An error occurred during the withdrawal request, if error persists, contact to Support" });
             }
         }
     }

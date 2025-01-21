@@ -119,7 +119,7 @@ namespace MvcProject.Repositories
         }
 
 
-        public async Task<int> AddWithdrawRequestAsync(string userId, decimal amount)
+        public async Task<(int, string)> AddWithdrawRequestAsync(string userId, decimal amount)
         {
             try
             {
@@ -137,14 +137,12 @@ namespace MvcProject.Repositories
 
                 int returnCode = parameters.Get<int>("ReturnCode");
                 string returnMessage = parameters.Get<string>("ReturnMessage");
-                int newRequestId = parameters.Get<int>("@NewRequestId");
-
-                if (returnCode != 0)
+                if (returnCode>0)
                 {
-                    throw new Exception($"Error {returnCode}: {returnMessage}");
+                    return (0, returnMessage);
                 }
-
-                return newRequestId;
+                int newRequestId = parameters.Get<int>("@NewRequestId");
+                return (newRequestId, returnMessage);
             }
             catch (SqlException ex)
             {
@@ -161,7 +159,7 @@ namespace MvcProject.Repositories
                 await connection.OpenAsync();
 
                 var parameters = new DynamicParameters();
-                parameters.Add("@depositWithdrawId", depositWithdrawId);  // Correct parameter name
+                parameters.Add("@depositWithdrawId", depositWithdrawId);
                 parameters.Add("@Amount", amount);
                 parameters.Add("@FromAdmin", fromAdmin);
                 parameters.Add("ErrorCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
@@ -184,6 +182,7 @@ namespace MvcProject.Repositories
                 throw;
             }
         }
+
 
     }
 }

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using MvcProject.Data;
 using MvcProject.Models;
 using MvcProject.Repositories;
-using MvcProject.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
@@ -12,7 +11,6 @@ builder.Services.AddScoped<IDepositWithdrawRepository, DepositWithdrawRepository
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
-builder.Services.AddScoped<IWalletService, WalletService>();
 
 builder.Services.AddHttpClient<BankingApiService>();
 
@@ -25,6 +23,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+app.UseExceptionHandler("/Error");
 
 using (var scope = app.Services.CreateScope())
 {

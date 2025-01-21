@@ -7,8 +7,8 @@ namespace MvcProject.Models
         [JsonPropertyName("status")]
         public string Status {  get; set; }
         [JsonPropertyName("hash")]
-        public string Hash { get; set; }
-        [JsonPropertyName("depositwithdrawrequestid")]
         public int DepositWithdrawRequestId { get; set; }
+        [JsonPropertyName("redirectUrl")]
+        public string? RedirectUrl { get; set; }
     }
 }

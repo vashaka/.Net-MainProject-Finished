@@ -51,7 +51,7 @@ namespace MvcProject.Repositories
 
 
 
-        public async Task<string> CreateWithdrawTransactionAsync(string userId, string status, decimal amount, int depositWithdrawRequestId)
+        public async Task<(int, string)> CreateWithdrawTransactionAsync(string userId, string status, decimal amount, int depositWithdrawRequestId)
         {
             _logger.LogInformation("Withdraw transaction successfully started!!!!");
 
@@ -73,18 +73,23 @@ namespace MvcProject.Repositories
                 int errorCode = parameters.Get<int>("ErrorCode");
                 string errorMessage = parameters.Get<string>("ErrorMessage");
 
-                if (errorCode != 0)
+                //if (errorCode != 0)
+                //{
+                //    _logger.LogError("Error occurred: {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
+                //    return $"ERROR: {errorMessage}";
+                //}
+
+                if (errorCode > 0)
                 {
-                    _logger.LogError("Error occurred: {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
-                    return $"ERROR: {errorMessage}";
+                    return (errorCode, errorMessage);
                 }
 
-                return "OK";
+                return (0, "OK");
             }
             catch (SqlException ex)
             {
                 _logger.LogError("Error occurred: {Message}", ex.Message);
-                return "ERROR";
+                return (1, "ERROR");
             }
         }
 

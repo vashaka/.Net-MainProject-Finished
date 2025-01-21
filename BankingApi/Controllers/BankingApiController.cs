@@ -2,8 +2,6 @@
 using BankingApi.Models;
 using BankingApi.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace BankingApi.Controllers
 {
@@ -13,29 +11,36 @@ namespace BankingApi.Controllers
     {
         private readonly CallingCallBackWithdrawService _callBackService;
         private readonly ILogger<BankingApiController> _logger;
-        public BankingApiController(CallingCallBackWithdrawService callBackService, ILogger<BankingApiController> logger)
+        private readonly IConfiguration _configuration;
+        public BankingApiController(CallingCallBackWithdrawService callBackService, ILogger<BankingApiController> logger, IConfiguration configuration)
         {
             _callBackService = callBackService;
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpPost("DepositFinish")]
         public IActionResult DepositFinish([FromBody] BankingApiDepositRequest request)
         {
-            // SEND REQUEST TO MVC    CALLBACKCONTROLLER
-            const string secretKey = "vashaka_secret_keyy";
-            string hash = HashingHelper.GenerateSHA256Hash(request.Amount.ToString(),request.DepositWithdrawRequestId.ToString(),secretKey);
+            string secretKey = _configuration["AppSettings:SecretKey"]!;
+            string MerchantId = _configuration["AppSettings:MerchantId"]!;
+            string hash = HashingHelper.GenerateSHA256Hash(request.Amount.ToString(),request.DepositWithdrawRequestId.ToString(),secretKey, MerchantId);
             if (hash != request.Hash)
             {
                 _logger.LogInformation("INCORRECT HASHING, !!!!");
                 return Ok(new { Status = "Rejected" });
             }
+            string status;
             if (request.Amount % 2 == 1)
             {
                 _logger.LogInformation("NOT CORRECT, AMOUNT IS EVEN");
-                return Ok(new { Status = "Rejected", Hash = hash, depositwithdrawrequestid = request.DepositWithdrawRequestId });
+                status = "Rejected";
             }
-            return Ok(new { Status = "Success", Hash = hash, depositwithdrawrequestid = request.DepositWithdrawRequestId });
+            else
+            {
+                status = "Success";
+            }
+            return Ok(new { Status = status, depositwithdrawrequestid = request.DepositWithdrawRequestId });
         }
 
 
@@ -43,45 +48,46 @@ namespace BankingApi.Controllers
         [HttpPost("Deposit")]
         public IActionResult Deposit([FromBody] BankingApiDepositRequest request)
         {
-            const string secretKey = "vashaka_secret_keyy";
-            _logger.LogInformation("From BankingApi");
-            string hash = HashingHelper.GenerateSHA256Hash(request.Amount.ToString(),request.DepositWithdrawRequestId.ToString(),secretKey);
+            string secretKey = _configuration["AppSettings:SecretKey"]!;
+            string MvcBaseUrl = _configuration["AppSettings:MvcBaseUrl"]!;
+            string MerchantId = _configuration["AppSettings:MerchantId"]!;
+            string hash = HashingHelper.GenerateSHA256Hash(request.Amount.ToString(),request.DepositWithdrawRequestId.ToString(),secretKey, MerchantId);
             if (hash != request.Hash)
             {
                 _logger.LogInformation("INCORRECT HASHING, !!!! HERE HERE HERE");
                 return Ok(new { Status = "Rejected" });
             }
 
-            return Ok(new { Status = "Success", Hash = hash, depositwithdrawrequestid = request.DepositWithdrawRequestId });
+            string redirectUrl = $"{MvcBaseUrl}/CallBack/{request.DepositWithdrawRequestId}";
+            return Ok(new { Status = "Success", RedirectUrl = redirectUrl });
         }
 
         // calledfromadminContr
         [HttpPost("Withdraw")]
         public async Task<IActionResult> Withdraw(BankingApiAdminRequest adminRequest)
         {
-            const string secretKey = "vashaka_secret_keyy";
-            string hash = HashingHelper.GenerateSHA256Hash(adminRequest.Amount.ToString(),adminRequest.DepositWithdrawRequestId.ToString(),secretKey);
+            string secretKey = _configuration["AppSettings:SecretKey"]!;
+            string MerchantId = _configuration["AppSettings:MerchantId"]!;
+            string hash = HashingHelper.GenerateSHA256Hash(adminRequest.Amount.ToString(),adminRequest.DepositWithdrawRequestId.ToString(),secretKey, MerchantId);
+
             if (hash != adminRequest.Hash)
             {
                 _logger.LogInformation("INCORRECT HASHING, !!!!");
                 return Ok(new { Status = "Rejected" });
             }
+
+            string status;
             if (adminRequest.Amount % 2 == 1)
             {
                 _logger.LogInformation("NOT CORRECT, AMOUNT IS EVEN");
-                string resp1 = await _callBackService.CallCallBackControllerWithdraw(adminRequest.DepositWithdrawRequestId, "Rejected");
-                if (resp1 == "ERROR")
-                {
-                    return Ok(new { Status = "Rejected", Hash = hash, depositwithdrawrequestid = adminRequest.DepositWithdrawRequestId });
-                }
-                return Ok(new { Status = "Rejected", Hash = hash, depositwithdrawrequestid = adminRequest.DepositWithdrawRequestId });
+                status = "Rejected";
             }
-            string resp = await _callBackService.CallCallBackControllerWithdraw(adminRequest.DepositWithdrawRequestId, "Success");
-            if (resp == "ERROR")
+            else
             {
-                return Ok(new { Status = "Rejected", Hash = hash, depositwithdrawrequestid = adminRequest.DepositWithdrawRequestId });
+                status = "Success";
             }
-            return Ok(new { Status = "Success" });
+            string resp = await _callBackService.CallCallBackControllerWithdraw(adminRequest.DepositWithdrawRequestId, status);
+            return Ok(new { Status = resp == "ERROR" ? "Rejected" : status });
         }
     }
 }
