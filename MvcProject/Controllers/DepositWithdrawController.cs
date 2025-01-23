@@ -42,6 +42,10 @@ namespace MvcProject.Controllers
             {
                 // EVERYTHING HAPPENS IN SERVICE
                 var bankingApiResponse = await _bankingApiService.CallDepositBankingApiAsync(amount, userId);
+                if(bankingApiResponse.Status == "Rejected")
+                {
+                    return Ok(new { message = "Hash incorrect!! Someone is Between" });
+                }
                 return Ok(new { redirectUrl = bankingApiResponse.RedirectUrl });
             }
             catch (Exception ex)

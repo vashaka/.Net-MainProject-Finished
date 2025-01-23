@@ -52,17 +52,17 @@ public class BankingApiService
         else
         {
             _logger.LogWarning("Error");
-            return "Rejected";
+            return "Server-Rejected";
         }
     }
 
     public async Task<BankingApiResponse> CallDepositBankingApiAsync(decimal amount, string userId)
     {
-        // TEST THIS ........
         int depositWithdrawId = await _depWithRepo.AddDepositRequestAsync(userId, amount);
         string secretKey = _configuration["AppSettings:SecretKey"]!;
         string baseUrl = _configuration["AppSettings:BankingApiBaseUrl"]!;
         string MerchantId = _configuration["AppSettings:MerchantId"]!;
+
         string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(),depositWithdrawId.ToString(), secretKey, MerchantId);
         var bankingApiUrl = $"{baseUrl}/BankingApi/Deposit";
 

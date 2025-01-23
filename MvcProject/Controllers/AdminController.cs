@@ -36,18 +36,25 @@ namespace MvcProject.Controllers
         [HttpPost]
         public async Task<IActionResult> AdminApproveReject(int id, decimal amount, string status)
         {
-            if (status == "Rejected")
-            {
-                bool fromAdmin = true;
-                // Status Always rejected passed to Repo
-                await _depositWithdrawRepo.UpdateWithdrawStatusAsync(id, amount, fromAdmin);
-                return Ok();
-            }
+            if (status == "Rejected") return await HandleRejectedRequestAsync(id, amount);
+
             string secretKey = _configuration["AppSettings:SecretKey"]!;
             string MerchantId = _configuration["AppSettings:MerchantId"]!;
+
             string hash = HashingHelper.GenerateSHA256Hash(amount.ToString(), id.ToString(),secretKey, MerchantId);
 
-            await _bankingApiService.CallAdminBankingApi(id, amount, status, hash);
+            string resp = await _bankingApiService.CallAdminBankingApi(id, amount, status, hash);
+
+            if (resp == "Server-Rejected") return await HandleRejectedRequestAsync(id, amount);
+
+            return Ok();
+        }
+
+        private async Task<IActionResult> HandleRejectedRequestAsync(int id, decimal amount)
+        {
+            bool fromAdmin = true;
+            // Status Always rejected passed to Repo
+            await _depositWithdrawRepo.UpdateWithdrawStatusAsync(id, amount, fromAdmin);
             return Ok();
         }
     }

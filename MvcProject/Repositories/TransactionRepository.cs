@@ -73,14 +73,9 @@ namespace MvcProject.Repositories
                 int errorCode = parameters.Get<int>("ErrorCode");
                 string errorMessage = parameters.Get<string>("ErrorMessage");
 
-                //if (errorCode != 0)
-                //{
-                //    _logger.LogError("Error occurred: {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
-                //    return $"ERROR: {errorMessage}";
-                //}
-
                 if (errorCode > 0)
                 {
+                    _logger.LogError("Error occurred: {ErrorCode}, Message: {ErrorMessage}", errorCode, errorMessage);
                     return (errorCode, errorMessage);
                 }
 

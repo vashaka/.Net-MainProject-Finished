@@ -78,7 +78,7 @@ namespace MvcProject.Repositories
             catch (SqlException ex)
             {
                 _logger.LogError("Database operation failed: {Message}", ex.Message);
-                throw;
+                throw new Exception("Database operation failed. Please try again later.", ex);
             }
         }
 
@@ -147,7 +147,7 @@ namespace MvcProject.Repositories
             catch (SqlException ex)
             {
                 _logger.LogError("Database operation failed: {Message}", ex.Message);
-                throw;
+                throw new Exception("Error Code: 414, Message: From Server");
             }
         }
 
@@ -182,7 +182,5 @@ namespace MvcProject.Repositories
                 throw;
             }
         }
-
-
     }
 }

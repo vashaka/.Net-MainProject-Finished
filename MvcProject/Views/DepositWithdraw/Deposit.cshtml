@@ -24,10 +24,14 @@
 
                 $.ajax({url: '@Url.Action("SubmitDeposit", "DepositWithdraw")',type:'POST',data: {amount: amount},
                     success: function (response) {
-                        window.location.href = response.redirectUrl;
+                        if(response?.redirectUrl)
+                        {
+                            window.location.href = response.redirectUrl;
+                        }
+                        $('#result').text(response.message);
                     }, error: function (xhr, status, error) {
                         console.log(error,xhr, status);
-                            $('#result').text('An error occurred: '+ xhr.responseText);
+                            $('#result').text('Server cant corespond now!!');
                     }
                 });
             });
