@@ -1,8 +1,57 @@
-﻿@{
+﻿@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var userId = UserManager.GetUserId(User);
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<h1>Genrate public Token</h1>
+<button id="generate">Generate Token</button>
+<div id="public-token" style="margin-top: 20px; font-weight: bold;"></div>
+<div id="private-token" style="margin-top: 20px; font-weight: bold;"></div>
+
+<script>
+    const userId = "@userId";
+    function generateGUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0,
+                v = c === 'x' ? r : (r & 0x3) | 0x8; 
+            return v.toString(16);
+        });
+    }
+
+
+    function displaySavedToken() {
+        const savedToken = localStorage.getItem("publicKey");
+        if (savedToken) {
+            document.getElementById("public-token").textContent = "Public Token: " + savedToken;
+        }
+    }
+
+    document.getElementById("generate").addEventListener("click", async () => {
+        const publicToken = generateGUID();
+        document.getElementById("public-token").textContent = "Public Token: " + publicToken;
+        localStorage.setItem("publicKey", publicToken);
+
+        $.ajax({
+            url: `https://localhost:7057/Token/Generate`,
+            type: "POST",
+            data: JSON.stringify({ PublicToken: publicToken, userId: userId }),
+            contentType: "application/json; charset=utf-8",
+            success: function (response) {
+                if (response.statusCode == 200) {
+                    document.getElementById("private-token").textContent = "Private Token: " + response.privateToken
+                }else {
+                    document.getElementById("private-token").textContent = "Server Responsed with Status code of 500; Something Went Wrong";
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error in DepositFinish:", xhr);
+                alert("Failed to finish deposit. Please try again.");
+            }
+        });
+    });
+
+    window.onload = displaySavedToken;
+</script>
