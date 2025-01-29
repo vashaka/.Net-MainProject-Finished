@@ -2,7 +2,7 @@
 {
     public interface ITokenRepository
     {
-        Task<string> GeneratePrivateTokenAsync(string userId, string publicToken);
-        Task<string> RetrievePrivateToken(string publicToken);
+        Task<(string, int)> GeneratePrivateTokenAsync(string userId, string publicToken);
+        Task<(string?, string, int)> ActivatePrivateTokenAsync(string publicToken);
     }
 }

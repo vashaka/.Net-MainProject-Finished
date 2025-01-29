@@ -18,7 +18,7 @@ namespace CasinoApi.Repos
         }
 
         //        currentBalance, statusCode, ReturnMessage
-        public async Task<(decimal, int, string)> MakeBetAsync(string privateToken, decimal amount)
+        public async Task<(decimal, int, string)> MakeBetAsync(string privateToken, decimal amount, string transactionId, int GameId, int RoundId)
         {
             try
             {
@@ -28,6 +28,10 @@ namespace CasinoApi.Repos
                 var parameters = new DynamicParameters();
                 parameters.Add("@PrivateToken", privateToken);
                 parameters.Add("@Amount", amount);
+                parameters.Add("@TransactionId", transactionId);
+                parameters.Add("@GameId", GameId);
+                parameters.Add("@RoundId", RoundId);
+
                 parameters.Add("@UpdatedBalance", dbType: DbType.Decimal, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
@@ -54,7 +58,7 @@ namespace CasinoApi.Repos
             }
         }
 
-        public async Task<(decimal, int, string)> WinAsync(string privateToken, decimal amount)
+        public async Task<(decimal, int, string)> WinAsync(string privateToken, decimal amount, string transactionId, int GameId, int RoundId)
         {
             try
             {
@@ -64,6 +68,10 @@ namespace CasinoApi.Repos
                 var parameters = new DynamicParameters();
                 parameters.Add("@PrivateToken", privateToken);
                 parameters.Add("@Amount", amount);
+                parameters.Add("@TransactionId", transactionId);
+                parameters.Add("@GameId", GameId);
+                parameters.Add("@RoundId", RoundId);
+
                 parameters.Add("@UpdatedBalance", dbType: DbType.Decimal, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
@@ -90,7 +98,7 @@ namespace CasinoApi.Repos
             }
         }
 
-        public async Task<(decimal, int, string)> CancelBetAsync(string privateToken, int betTransactionId)
+        public async Task<(decimal, int, string)> CancelBetAsync(string privateToken, string transactionId, string betTransactionId, decimal amount, int GameId, int RoundId)
         {
             try
             {
@@ -99,7 +107,12 @@ namespace CasinoApi.Repos
 
                 var parameters = new DynamicParameters();
                 parameters.Add("@PrivateToken", privateToken);
+                parameters.Add("@Amount", amount);
+                parameters.Add("@TransactionId", transactionId);
+                parameters.Add("@GameId", GameId);
+                parameters.Add("@RoundId", RoundId);
                 parameters.Add("@BetTransactionId", betTransactionId);
+
                 parameters.Add("@UpdatedBalance", dbType: DbType.Decimal, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
                 parameters.Add("@ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
@@ -108,13 +121,55 @@ namespace CasinoApi.Repos
 
                 int returnCode = parameters.Get<int>("@ReturnCode");
                 string returnMessage = parameters.Get<string>("@ReturnMessage");
-                decimal updatedBalance = parameters.Get<decimal>("@UpdatedBalance");
-
                 if (returnCode != 200)
                 {
                     _logger.LogWarning("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
                     return (0, returnCode, returnMessage);
                 }
+                decimal updatedBalance = parameters.Get<decimal>("@UpdatedBalance");
+
+
+                _logger.LogInformation("Bet Canceled successfuly. Updated balance: {UpdatedBalance}", updatedBalance);
+                return (updatedBalance, 200, returnMessage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "bad error in: {Message}", ex.Message);
+                return (0, 500, "Server Error");
+            }
+        }
+
+        public async Task<(decimal, int, string)> ChangeWinAsync(string privateToken, string transactionId, string previousTransactionId, decimal amount, decimal previousAmount, int GameId, int RoundId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@PrivateToken", privateToken);
+                parameters.Add("@Amount", amount);
+                parameters.Add("@PrevAmount", previousAmount);
+                parameters.Add("@TransactionId", transactionId);
+                parameters.Add("@PrevTransactionId", previousTransactionId);
+                parameters.Add("@GameId", GameId);
+                parameters.Add("@RoundId", RoundId);
+
+                parameters.Add("@UpdatedBalance", dbType: DbType.Decimal, direction: ParameterDirection.Output);
+                parameters.Add("@ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("@ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync("ChangeWin", parameters, commandType: CommandType.StoredProcedure);
+
+                int returnCode = parameters.Get<int>("@ReturnCode");
+                string returnMessage = parameters.Get<string>("@ReturnMessage");
+                if (returnCode != 200)
+                {
+                    _logger.LogWarning("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
+                    return (0, returnCode, returnMessage);
+                }
+                decimal updatedBalance = parameters.Get<decimal>("@UpdatedBalance");
+
 
                 _logger.LogInformation("Bet Canceled successfuly. Updated balance: {UpdatedBalance}", updatedBalance);
                 return (updatedBalance, 200, returnMessage);

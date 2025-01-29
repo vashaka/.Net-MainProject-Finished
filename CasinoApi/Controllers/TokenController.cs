@@ -18,19 +18,20 @@ namespace CasinoApi.Controllers
         [HttpPost("Generate")]
         public async Task<IActionResult> GeneratePrivateToken([FromBody] GenerateTokenRequest req)
         {
-            string resp = await _tokenRepo.GeneratePrivateTokenAsync(req.UserId, req.PublicToken);
-            return Ok(new {PrivateToken = resp, StatusCode = resp =="ERROR" ? 500 : 200 });
+            var resp = await _tokenRepo.GeneratePrivateTokenAsync(req.UserId, req.PublicToken);
+            return Ok(new {ReturnMessage = resp.Item1, StatusCode = resp.Item2 });
         }
 
-        [HttpPost("Retrieve")]
-        public async Task<IActionResult> RetrievePrivateToken(string publicToken)
+        [HttpPost("RetrieveAndActivatePrivateToken")]
+        public async Task<IActionResult> ActivatePrivateToken(string publicToken)
         {
-            string privateToken = await _tokenRepo.RetrievePrivateToken(publicToken);
-            if(privateToken == null || privateToken == "ERROR")
+            var resp = await _tokenRepo.ActivatePrivateTokenAsync(publicToken);
+            
+            if(resp.Item1 == null || resp.Item3 != 200)
             {
-                return StatusCode(404, new {Message = "PrivateToken Not Found"});
+                return StatusCode(resp.Item3, new {Message = resp.Item2});
             }
-            return Ok(new {PrivateToken =  privateToken, Message = "Private token retrieved succeddfully!!!"});
+            return Ok(new {PrivateToken =  resp.Item1, Message = resp.Item2});
         }
 
     }

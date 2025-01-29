@@ -24,28 +24,6 @@ namespace MvcProject.Controllers
             return View();
         }
 
-        //public class GenerateTokenRequest
-        //{
-        //    public string Guid { get; set; }
-        //}
-
-        //[HttpPost("Generate")]
-        //public StatusResponse GeneratePrivateToken([FromBody] GenerateTokenRequest req)
-        //{
-        //    Console.WriteLine(req.Guid + " HElooooo");
-        //    StatusResponse response = new()
-        //    {
-        //        PrivateToken = Guid.NewGuid().ToString(),
-        //        StatusCode = 0
-        //    };
-        //    return response;
-        //}
-
-        //public class StatusResponse
-        //{
-        //    public string PrivateToken { get; set; }
-        //    public int StatusCode { get; set; }
-        //}
 
         public IActionResult Privacy()
         {
@@ -90,6 +68,10 @@ namespace MvcProject.Controllers
                 t.Amount,
                 t.Currency,
                 t.Status,
+                t.TransactionId,
+                t.BetId,
+                t.GameId,
+                t.RoundId,
                 CreatedAt = t.CreatedAt.ToString("yyyy-MM-dd")
             }).ToList();
 

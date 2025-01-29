@@ -15,11 +15,8 @@ namespace CasinoApi.Repos
             _connectionString = configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
             _logger = logger;
         }
-        public async Task<string> GeneratePrivateTokenAsync(string userId, string publicToken)
+        public async Task<(string, int)> GeneratePrivateTokenAsync(string userId, string publicToken)
         {
-            ArgumentNullException.ThrowIfNull(userId);
-            ArgumentNullException.ThrowIfNull(publicToken);
-
             try
             {
                 using var connection = new SqlConnection(_connectionString);
@@ -28,7 +25,6 @@ namespace CasinoApi.Repos
                 var parameters = new DynamicParameters();
                 parameters.Add("@UserId", userId);
                 parameters.Add("@PublicToken", publicToken);
-                parameters.Add("@NewPrivateToken", dbType: DbType.String, size: 50, direction: ParameterDirection.Output); 
                 parameters.Add("ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
                 parameters.Add("ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
 
@@ -36,49 +32,56 @@ namespace CasinoApi.Repos
 
                 int returnCode = parameters.Get<int>("ReturnCode");
                 string returnMessage = parameters.Get<string>("ReturnMessage") ?? "Unknown error.";
-                string newPrivateToken = parameters.Get<string>("@NewPrivateToken");
 
-                if (returnCode != 0)
-                {
-                    _logger.LogError("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
-                    return "ERROR";
-                }
+                //if (returnCode != 0)
+                //{
+                //    _logger.LogError("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
+                //}
+                   return (returnMessage, returnCode);
 
-                return newPrivateToken;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Database operation failed in {MethodName}: {Message}", nameof(GeneratePrivateTokenAsync), ex.Message);
-                return "ERROR";
+                return ("ERROR", 500);
             }
         }
 
-        public async Task<string> RetrievePrivateToken(string publicToken)
+        public async Task<(string?, string, int)> ActivatePrivateTokenAsync(string publicToken)
         {
-            string sql = @"SELECT PrivateToken 
-                FROM Tokens 
-                WHERE PublicToken = @PublicToken 
-                AND IsActive = 1";
             try
             {
                 using var connection = new SqlConnection(_connectionString);
                 await connection.OpenAsync();
+
                 var parameters = new DynamicParameters();
                 parameters.Add("@PublicToken", publicToken);
-                string? privateToken = await connection.QueryFirstOrDefaultAsync<string>(sql, parameters);
-                if(privateToken != null)
+                parameters.Add("@PrivateToken", dbType: DbType.String, size: 255, direction: ParameterDirection.Output);
+                parameters.Add("ReturnCode", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                parameters.Add("ReturnMessage", dbType: DbType.String, size: 4000, direction: ParameterDirection.Output);
+
+                await connection.ExecuteAsync("ActivatePrivateToken", parameters, commandType: CommandType.StoredProcedure).ConfigureAwait(false);
+
+                int returnCode = parameters.Get<int>("ReturnCode");
+                string returnMessage = parameters.Get<string>("ReturnMessage") ?? "Unknown error.";
+                if (returnCode != 200)
                 {
-                    return privateToken;
+                    _logger.LogInformation("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
+                    return (null, returnMessage, returnCode);
                 }
-                return "ERROR";
+                string privateToken = parameters.Get<string>("@PrivateToken");
+
+
+                return (privateToken, returnMessage, returnCode);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Database operation failed in {MethodName}: {Message}", nameof(GeneratePrivateTokenAsync), ex.Message);
-                return "ERROR";
+                _logger.LogError(ex, "Database operation failed in {MethodName}: {Message}", nameof(ActivatePrivateTokenAsync), ex.Message);
+                return (null, "Server Error", 500);
             }
-
         }
+
+
 
     }
 }

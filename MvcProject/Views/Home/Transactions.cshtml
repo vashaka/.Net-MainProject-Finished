@@ -13,10 +13,14 @@
     <table class="mt-5" id="transactionsTable" style="width: 100%;">
         <thead>
             <tr>
-                <th>Transaction ID</th>
+                <th>ID</th>
                 <th>Transaction-Type</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>TransactionId*</th>
+                <th>Be/Pre TranId*</th>
+                <th>GameId*</th>
+                <th>RoundId*</th>
                 <th>Date</th>
             </tr>
         </thead>
@@ -55,6 +59,10 @@
                                 transaction.transactionType,
                                 currencySymbol + transaction.amount.toFixed(2),
                                 transaction.status,
+                                transaction.transactionId,
+                                transaction.betId,
+                                transaction.gameId,
+                                transaction.roundId,
                                 transaction.createdAt
                             ]).draw(false);
                         });

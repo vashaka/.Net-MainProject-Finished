@@ -13,6 +13,7 @@ namespace CasinoApi.Controllers
         {
             _actionsRepo = actionsRepo;
         }
+
         [HttpPost("Bet")]
         public async Task<IActionResult> Bet(BetRequest betReq)
         {
@@ -23,7 +24,7 @@ namespace CasinoApi.Controllers
                     return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
-                var resp = await _actionsRepo.MakeBetAsync(betReq.Token, betReq.Amount);
+                var resp = await _actionsRepo.MakeBetAsync(betReq.Token, betReq.Amount, betReq.TransactionId, betReq.GameId, betReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
@@ -37,7 +38,7 @@ namespace CasinoApi.Controllers
                     Data = new
                     {
                         TransactionsId = betReq.TransactionId,
-                        UpdatedBalance = resp.Item1,                    
+                        UpdatedBalance = resp.Item1,
                     }
 
                 });
@@ -59,7 +60,7 @@ namespace CasinoApi.Controllers
                     return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
-                var resp = await _actionsRepo.WinAsync(winReq.Token, winReq.Amount);
+                var resp = await _actionsRepo.WinAsync(winReq.Token, winReq.Amount, winReq.TransactionId, winReq.GameId, winReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
@@ -94,7 +95,7 @@ namespace CasinoApi.Controllers
                     return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
-                var resp = await _actionsRepo.CancelBetAsync(cancelBetReq.Token, cancelBetReq.BetTransactionId);
+                var resp = await _actionsRepo.CancelBetAsync(cancelBetReq.Token, cancelBetReq.TransactionId,cancelBetReq.BetTransactionId, cancelBetReq.Amount, cancelBetReq.GameId, cancelBetReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
@@ -119,11 +120,40 @@ namespace CasinoApi.Controllers
             }
         }
 
-        //[HttpPost]
-        //public IActionResult ChangeWin()
-        //{
-        //    return Ok();
-        //}
+        [HttpPost("ChangeWin")]
+        public async Task<IActionResult> ChangeWin(ChangeWinRequest changeWinReq)
+        {
+            try
+            {
+                if (changeWinReq == null || string.IsNullOrWhiteSpace(changeWinReq.Token))
+                {
+                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                }
+
+                var resp = await _actionsRepo.ChangeWinAsync(changeWinReq.Token, changeWinReq.TransactionId, changeWinReq.PreviousTransactionId, changeWinReq.Amount, changeWinReq.PreviousAmount, changeWinReq.GameId, changeWinReq.RoundId);
+
+                if (resp.Item1 == 0)
+                {
+                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                }
+
+                return Ok(new
+                {
+                    Message = resp.Item3,
+                    StatusCode = resp.Item2,
+                    Data = new
+                    {
+                        TransactionsId = changeWinReq.TransactionId,
+                        UpdatedBalance = resp.Item1,
+                    }
+
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = "An unexpected error occurred." });
+            }
+        }
 
         [HttpPost("GetBalance")]
         public async Task<IActionResult> GetBalance(GetBalanceRequest GetBalanceReq)

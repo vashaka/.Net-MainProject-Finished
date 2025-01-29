@@ -41,7 +41,7 @@
             contentType: "application/json; charset=utf-8",
             success: function (response) {
                 if (response.statusCode == 200) {
-                    document.getElementById("private-token").textContent = "Private Token: " + response.privateToken
+                    document.getElementById("private-token").textContent = "Return Message: " + response.returnMessage
                 }else {
                     document.getElementById("private-token").textContent = "Server Responsed with Status code of 500; Something Went Wrong";
                 }
