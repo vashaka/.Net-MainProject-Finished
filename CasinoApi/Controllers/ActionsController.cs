@@ -43,9 +43,9 @@ namespace CasinoApi.Controllers
 
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return StatusCode(500, new { Message = "An unexpected error occurred" });
             }
         }
 
@@ -81,7 +81,7 @@ namespace CasinoApi.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return StatusCode(500, new { Message = "An unexpected error occurred" });
             }
         }
 

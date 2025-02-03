@@ -33,11 +33,7 @@ namespace CasinoApi.Repos
                 int returnCode = parameters.Get<int>("ReturnCode");
                 string returnMessage = parameters.Get<string>("ReturnMessage") ?? "Unknown error.";
 
-                //if (returnCode != 0)
-                //{
-                //    _logger.LogError("Stored procedure failed with code {ReturnCode}: {ReturnMessage}", returnCode, returnMessage);
-                //}
-                   return (returnMessage, returnCode);
+                return (returnMessage, returnCode);
 
             }
             catch (Exception ex)
@@ -80,8 +76,5 @@ namespace CasinoApi.Repos
                 return (null, "Server Error", 500);
             }
         }
-
-
-
     }
 }

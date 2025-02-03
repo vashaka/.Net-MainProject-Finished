@@ -21,21 +21,13 @@
         });
     }
 
-
-    function displaySavedToken() {
-        const savedToken = localStorage.getItem("publicKey");
-        if (savedToken) {
-            document.getElementById("public-token").textContent = "Public Token: " + savedToken;
-        }
-    }
-
     document.getElementById("generate").addEventListener("click", async () => {
         const publicToken = generateGUID();
         document.getElementById("public-token").textContent = "Public Token: " + publicToken;
         localStorage.setItem("publicKey", publicToken);
 
         $.ajax({
-            url: `https://localhost:7057/Token/Generate`,
+            url: `https://localhost:7057/Auth/Generate`,
             type: "POST",
             data: JSON.stringify({ PublicToken: publicToken, userId: userId }),
             contentType: "application/json; charset=utf-8",
@@ -53,5 +45,4 @@
         });
     });
 
-    window.onload = displaySavedToken;
 </script>
