@@ -28,12 +28,11 @@ namespace CasinoApi.Controllers
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new
                     {
@@ -57,19 +56,18 @@ namespace CasinoApi.Controllers
             {
                 if (winReq == null || string.IsNullOrWhiteSpace(winReq.Token) || winReq.Amount <= 0)
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.WinAsync(winReq.Token, winReq.Amount, winReq.TransactionId, winReq.GameId, winReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new
                     {
@@ -79,7 +77,7 @@ namespace CasinoApi.Controllers
 
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return StatusCode(500, new { Message = "An unexpected error occurred" });
             }
@@ -92,19 +90,18 @@ namespace CasinoApi.Controllers
             {
                 if (cancelBetReq == null || string.IsNullOrWhiteSpace(cancelBetReq.Token))
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.CancelBetAsync(cancelBetReq.Token, cancelBetReq.TransactionId,cancelBetReq.BetTransactionId, cancelBetReq.Amount, cancelBetReq.GameId, cancelBetReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new
                     {
@@ -114,9 +111,9 @@ namespace CasinoApi.Controllers
 
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return Ok(new { Message = "An unexpected error occurred.", StatusCode = 500 });
             }
         }
 
@@ -127,19 +124,18 @@ namespace CasinoApi.Controllers
             {
                 if (changeWinReq == null || string.IsNullOrWhiteSpace(changeWinReq.Token))
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.ChangeWinAsync(changeWinReq.Token, changeWinReq.TransactionId, changeWinReq.PreviousTransactionId, changeWinReq.Amount, changeWinReq.PreviousAmount, changeWinReq.GameId, changeWinReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new
                     {
@@ -149,9 +145,9 @@ namespace CasinoApi.Controllers
 
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return Ok(new { Message = "An unexpected error occurred.", StatusCode = 500 });
             }
         }
 
@@ -169,12 +165,11 @@ namespace CasinoApi.Controllers
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new 
                     { 
@@ -202,12 +197,11 @@ namespace CasinoApi.Controllers
 
                 if (resp.Item1 == null)
                 {
-                    return StatusCode(resp.Item2, new { Message = resp.Item3, StatusCode = resp.Item2 });
+                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
                 {
-                    Message = resp.Item3,
                     StatusCode = resp.Item2,
                     Data = new
                     {

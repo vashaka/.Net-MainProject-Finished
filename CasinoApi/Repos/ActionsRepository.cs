@@ -170,8 +170,7 @@ namespace CasinoApi.Repos
                 }
                 decimal updatedBalance = parameters.Get<decimal>("@UpdatedBalance");
 
-
-                _logger.LogInformation("Bet Canceled successfuly. Updated balance: {UpdatedBalance}", updatedBalance);
+                _logger.LogInformation("win Changed successfuly. Updated balance: {UpdatedBalance}", updatedBalance);
                 return (updatedBalance, 200, returnMessage);
             }
             catch (Exception ex)
