@@ -21,14 +21,14 @@ namespace CasinoApi.Controllers
             {
                 if (betReq == null || string.IsNullOrWhiteSpace(betReq.Token) || betReq.Amount <= 0)
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.MakeBetAsync(betReq.Token, betReq.Amount, betReq.TransactionId, betReq.GameId, betReq.RoundId);
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
@@ -44,7 +44,7 @@ namespace CasinoApi.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred" });
+                return Ok(new { Message = "An unexpected error occurred", StatusCode = 500 });
             }
         }
 
@@ -79,7 +79,7 @@ namespace CasinoApi.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred" });
+                return Ok(new { Message = "An unexpected error occurred", StatusCode = 500 });
             }
         }
 
@@ -142,7 +142,6 @@ namespace CasinoApi.Controllers
                         TransactionsId = changeWinReq.TransactionId,
                         UpdatedBalance = resp.Item1,
                     }
-
                 });
             }
             catch (Exception)
@@ -158,14 +157,14 @@ namespace CasinoApi.Controllers
             {
                 if (GetBalanceReq == null || string.IsNullOrWhiteSpace(GetBalanceReq.Token))
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.GetBalanceAsync(GetBalanceReq.Token);
 
                 if (resp.Item1 == 0)
                 {
-                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
@@ -179,7 +178,7 @@ namespace CasinoApi.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return Ok(new { Message = "An unexpected error occurred.", StatusCode = 500 });
             }
         }
 
@@ -190,14 +189,14 @@ namespace CasinoApi.Controllers
             {
                 if (string.IsNullOrWhiteSpace(privateToken))
                 {
-                    return StatusCode(411, new { Message = "Invalid Parameters", StatusCode = 411 });
+                    return Ok(new { Message = "Invalid Parameters", StatusCode = 411 });
                 }
 
                 var resp = await _actionsRepo.GetUserInfoAsync(privateToken);
 
                 if (resp.Item1 == null)
                 {
-                    return StatusCode(resp.Item2, new { StatusCode = resp.Item2 });
+                    return Ok(new { StatusCode = resp.Item2 });
                 }
 
                 return Ok(new
@@ -217,7 +216,7 @@ namespace CasinoApi.Controllers
             }
             catch (Exception)
             {
-                return StatusCode(500, new { Message = "An unexpected error occurred." });
+                return Ok(new { Message = "An unexpected error occurred.", StatusCode = 500 });
             }
         }
     }
